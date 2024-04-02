@@ -37,7 +37,7 @@ local function cacheParent( _, Parent )
 			accessibles[otherLoadedName] = differentLoaded
 		end
 		preLoaded.Initialised = true
-		preLoaded:Init(accessibles)
+		preLoaded.Init(accessibles)
 	end
 
 	return Cache
@@ -50,7 +50,7 @@ local function startFramework()
 				continue
 			end
 			preLoaded.Started = true
-			preLoaded:Start()
+			preLoaded.Start()
 		end
 	end
 end
