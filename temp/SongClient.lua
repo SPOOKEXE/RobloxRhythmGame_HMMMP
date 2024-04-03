@@ -1,14 +1,5 @@
 local RunService = game:GetService('RunService')
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local LocalAssets = LocalPlayer:WaitForChild('PlayerScripts'):WaitForChild('Assets')
-
-local Interface = LocalPlayer:WaitForChild('PlayerGui'):WaitForChild('Interface')
-local ContainerFrame = Interface:WaitForChild('Container')
-
-local TemplateButtonFrame = LocalAssets.UI.TemplateButton
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedModules = require(ReplicatedStorage:WaitForChild("Modules"))
 
@@ -18,36 +9,6 @@ local SystemsContainer = {}
 
 -- // Module // --
 local Module = {}
-
-function Module:ResolveAspectMultiplier( resolution, absoluteSize )
-	if resolution.X == absoluteSize.X and resolution.Y == absoluteSize.Y then
-		return 1
-	end
-	return math.min(
-		math.max( resolution.X / absoluteSize.X, absoluteSize.X / resolution.X ), -- xMax
-		math.max( resolution.Y / absoluteSize.Y, absoluteSize.Y / resolution.Y ) -- yMax
-	)
-end
-
---[[function Module:CreateActionButtonFrame( SongData, ButtonData )
-	local Frame = TemplateButtonFrame:Clone()
-	Frame.Rotation = 90 * ButtonData.Rotation
-	Frame.Visible = false
-	Frame.Parent = ContainerFrame
-
-	local aspectMultiplier =  Module:ResolveAspectMultiplier( SongData.Resolution, TemplateButtonFrame.AbsoluteSize )
-	Frame.Position = UDim2.fromOffset( aspectMultiplier * ButtonData.X, aspectMultiplier * ButtonData.Y )
-
-	Frame.Visible = true
-
-	return Frame
-end]]
-
---[[function Module:UpdateActionButtonFrame( Frame, CurrentTimestamp, ButtonData )
-
-	local Delta = math.min( CurrentTimestamp / ButtonData.Timestamp, 1 )
-
-end]]
 
 Module.ActiveSongId = false
 Module.ActiveSongData = false
