@@ -1,56 +1,19 @@
 
-export type KeyPressData = {
-	Action : number,
-	X : number,
-	Y : number
-}
+--[[
+	TODO:
+	- create data for choosing where a keybind/slider item floats in from
+]]
 
-export type BaseNode = {
-	NodeType : number,
-	Timestamp : number,
-}
-
-export type PressButtonNode = BaseNode & {
-	PressType : number,
-	Keybinds : { KeyPressData },
-}
-
-export type HoldButtonNode = PressButtonNode & {
-	Duration : number,
-}
-
-export type SliderParams = {
-	Action : number,
-	PressType : number,
-	X : number,
-	Y : number
-}
-
-export type SliderHoldParams = {
-	Action : number,
-	PressType : number,
-	SX : number,
-	SY : number,
-	FX : number,
-	FY : number,
-	Duration : number
-}
-
-export type SliderDataNode = {
-	NodeType : number,
-	Timestamp : number,
-	Sliders : { SliderParams | SliderHoldParams }
-}
-
-export type SpeedNode = BaseNode & {
-	Speed : number,
-}
-
-export type SongData = {
-	AspectRatio : number,
-	Sound : { SoundId : string, Volume : number, TimePosition : number },
-	Nodes : { PressButtonNode | HoldButtonNode | SliderDataNode | SpeedNode }
-}
+local Types = require(script.Parent.Types)
+type KeyPressData = Types.KeyPressData
+type BaseNode = Types.BaseNode
+type PressButtonNode = Types.PressButtonNode
+type HoldButtonNode = Types.HoldButtonNode
+type SliderParams = Types.SliderParams
+type SliderHoldParams = Types.SliderHoldParams
+type SliderDataNode = Types.SliderDataNode
+type SpeedNode = Types.SpeedNode
+type SongData = Types.SongData
 
 -- // Module // --
 local Module = {}
@@ -160,6 +123,27 @@ Module.GlobalConfig = {
 	-- default key hold duration
 	DefaultKeyHoldDuration = 5,
 	DefaultSliderHoldDuration = 2,
+}
+
+Module.PointValues = {
+	Press = {
+		Action0 = 100,
+		Action1 = 100,
+		Action2 = 100,
+		Action3 = 100,
+		Action4 = 100,
+		Action5 = 100,
+		Action6 = 100,
+	},
+
+	Hold = {
+		Action0 = 2500,
+		Action1 = 2500,
+		Action2 = 2500,
+		Action3 = 2500,
+		Action4 = 2500,
+		Action5 = 2500,
+	},
 }
 
 local function CreateButtonData( action : number, X : number, Y : number ) : KeyPressData
@@ -380,6 +364,94 @@ function Module.GetExpectedDuration( nodes : { PressButtonNode | HoldButtonNode 
 		end
 	end
 	return ExpectedFinish, nodes[#nodes].Timestamp
+end
+
+function Module.GetPointsFromActionPress( actionEnum : number ) : number
+	if actionEnum == Module.Enums.ButtonEnums.Action1 then
+		return Module.PointValues.Press.Action1
+	elseif actionEnum == Module.Enums.ButtonEnums.Action2 then
+		return Module.PointValues.Press.Action2
+	elseif actionEnum == Module.Enums.ButtonEnums.Action3 then
+		return Module.PointValues.Press.Action3
+	elseif actionEnum == Module.Enums.ButtonEnums.Action4 then
+		return Module.PointValues.Press.Action4
+	elseif actionEnum == Module.Enums.ButtonEnums.Action5 then
+		return Module.PointValues.Press.Action5
+	elseif actionEnum == Module.Enums.ButtonEnums.Action6 then
+		return Module.PointValues.Press.Action6
+	end
+	return 0
+end
+
+function Module.GetPointsFromActionHold( actionEnum : number ) : number
+	if actionEnum == Module.Enums.ButtonEnums.Action1 then
+		return Module.PointValues.Hold.Action1
+	elseif actionEnum == Module.Enums.ButtonEnums.Action2 then
+		return Module.PointValues.Hold.Action2
+	elseif actionEnum == Module.Enums.ButtonEnums.Action3 then
+		return Module.PointValues.Hold.Action3
+	elseif actionEnum == Module.Enums.ButtonEnums.Action4 then
+		return Module.PointValues.Hold.Action4
+	elseif actionEnum == Module.Enums.ButtonEnums.Action5 then
+		return Module.PointValues.Hold.Action5
+	elseif actionEnum == Module.Enums.ButtonEnums.Action6 then
+		return Module.PointValues.Hold.Action6
+	end
+	return 0
+end
+
+function Module.CalculateMaximumPoints( nodes : { PressButtonNode | HoldButtonNode | SliderDataNode | SpeedNode } )
+	local maximumPoints : number = 0
+	local lastActionCache = {}
+
+	local function CheckOngoingValue(item : { Action : number, Timestamp : number })
+		local ongoingAction = lastActionCache[item.Action]
+		if not ongoingAction then
+			return
+		end
+		local maxDuration : number = (item.Timestamp - ongoingAction.Timestamp)
+		if maxDuration < ongoingAction.Duration then
+			-- released early for next item
+			local delta = math.clamp( maxDuration / ongoingAction.Duration, 0, 1 )
+			local points = Module.GetPointsFromActionPress( item.Action ) * delta
+			points = math.round(points)
+			maximumPoints += points
+		else -- completed the full hold
+			maximumPoints += Module.GetPointsFromActionPress( item.Action )
+		end
+	end
+
+	for _, node in nodes do
+		if node.PressType == Module.Enums.PressTypes.Press then
+			if node.NodeType == Module.Enums.NodeType.Button then
+				for _, key in node.Keybinds do
+					maximumPoints += Module.GetPointsFromActionPress( key.Action )
+					CheckOngoingValue(key)
+					lastActionCache[key.Action] = nil
+				end
+			elseif node.NodeType == Module.Enums.NodeType.Slider then
+				for _, slider in node.Sliders do
+					maximumPoints += Module.GetPointsFromActionPress( slider.Action )
+					CheckOngoingValue(slider)
+					lastActionCache[slider.Action] = nil
+				end
+			end
+		elseif node.PressType == Module.Enums.PressTypes.Hold then
+			if node.NodeType == Module.Enums.NodeType.Button then
+				for _, key in node.Keybinds do
+					CheckOngoingValue(key)
+					lastActionCache[key.Action] = key
+				end
+			elseif node.NodeType == Module.Enums.NodeType.Slider then
+				for _, slider in node.Sliders do
+					CheckOngoingValue(slider)
+					lastActionCache[slider.Action] = slider
+				end
+			end
+		end
+	end
+
+	return maximumPoints
 end
 
 function Module.GetConfigFromId( songId : string ) : SongData
