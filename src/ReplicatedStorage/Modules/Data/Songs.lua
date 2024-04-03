@@ -27,6 +27,12 @@ Module.DefaultKeybinds = {
 	Action6 = Enum.KeyCode.E,
 }
 
+Module.RemoteEnums = {
+	Play = 1,
+	Cancel = 2,
+	Validate = 3,
+}
+
 Module.ButtonIconSets = {
 	Arrows0 = {
 		Action1 = 'rbxassetid://-1',
@@ -66,6 +72,12 @@ Module.ButtonIconSets = {
 }
 
 Module.Enums = {
+	Difficulty = {
+		Easy = 1,
+		Normal = 2,
+		Hard = 3,
+		Extreme = 4,
+	},
 	NodeType = {
 		Button = 1,
 		Speed = 2,
@@ -106,6 +118,7 @@ Module.GlobalConfig = {
 		Great = 0.15,
 		Okay = 0.2,
 		Pass = 0.3,
+		Miss = 0.4,
 	},
 
 	-- maps to Module.Enums.SpeedLevel
@@ -127,13 +140,13 @@ Module.GlobalConfig = {
 
 Module.PointValues = {
 	Press = {
-		Action0 = 100,
-		Action1 = 100,
-		Action2 = 100,
-		Action3 = 100,
-		Action4 = 100,
-		Action5 = 100,
-		Action6 = 100,
+		Action0 = {100, 75, 50, 0},
+		Action1 = {100, 75, 50, 0},
+		Action2 = {100, 75, 50, 0},
+		Action3 = {100, 75, 50, 0},
+		Action4 = {100, 75, 50, 0},
+		Action5 = {100, 75, 50, 0},
+		Action6 = {100, 75, 50, 0},
 	},
 
 	Hold = {
@@ -212,13 +225,13 @@ end
 
 Module.Songs = {
 
-	TestSong1 = {
+	{
+		SongId = 'TestSong1',
+		Difficulty = Module.Enums.Difficulty.Easy,
+		StarLevel = 1,
+
+		Sound = { SoundId = "rbxassetid://-1", TimePosition = 0, Volume = 0.2, },
 		AspectRatio = (1920 / 1080),
-		Sound = {
-			SoundId = "rbxassetid://-1",
-			TimePosition = 0,
-			Volume = 0.2,
-		},
 		Nodes = {
 			CreateSpeed( 0, Module.Enums.SpeedLevel.Normal ),
 			-- single key press tests
@@ -325,10 +338,19 @@ Module.Songs = {
 }
 
 -- sort nodes by timestamp
-for _, songData in pairs(Module.Songs) do
-	table.sort(songData.NoteData, function(A, B)
+for _, data in Module.Songs do
+	table.sort(data.Nodes, function(A, B)
 		return A.Timestamp < B.Timestamp
 	end)
+end
+
+function Module.GetSongIndex( songId : string, difficulty : number ) : number?
+	for index, data : SongData in Module.Songs do
+		if data.SongId == songId and data.Difficulty == difficulty then
+			return index
+		end
+	end
+	return nil
 end
 
 function Module.GetSpeedMultiplier( speedEnum : number ) : number
@@ -347,20 +369,20 @@ function Module.GetSpeedMultiplier( speedEnum : number ) : number
 	elseif speedEnum == Module.Enums.SpeedLevel.Fast4 then
 		return Module.GlobalConfig.SpeedMultipliers.Fast4
 	end
-	-- speedEnum == Module.Enums.SpeedLevel.Normal or 'unknown'
 	return Module.GlobalConfig.SpeedMultipliers.Normal
 end
 
 function Module.GetExpectedDuration( nodes : { PressButtonNode | HoldButtonNode | SliderDataNode | SpeedNode } ) : (number, number)
 	local ExpectedFinish : number = 0
-	local Speed : number = 1
+	local Speed : number = Module.GlobalConfig.SpeedMultipliers.Normal
 	local LastTimestamp : number = 0
-	for _, note in ipairs( nodes ) do
-		if note.Type == "Speed" then
+	for index, note in ipairs( nodes ) do
+		if note.NodeType == Module.Enums.NodeType.Speed then
+			ExpectedFinish += (note.Timestamp - LastTimestamp) * (1 / Speed)
 			Speed = Module.GetSpeedMultiplier(note.Speed)
-		elseif note.Type == "Action" then
-			ExpectedFinish += (note.Timestamp - LastTimestamp) * (1/Speed)
 			LastTimestamp = note.Timestamp
+		elseif index == #nodes then
+			ExpectedFinish += (note.Timestamp - LastTimestamp) * (1 / Speed)
 		end
 	end
 	return ExpectedFinish, nodes[#nodes].Timestamp
@@ -454,8 +476,8 @@ function Module.CalculateMaximumPoints( nodes : { PressButtonNode | HoldButtonNo
 	return maximumPoints
 end
 
-function Module.GetConfigFromId( songId : string ) : SongData
-	return Module.Songs[ songId ]
+function Module.GetConfigFromIndex( index : number ) : SongData?
+	return Module.Songs[ index ]
 end
 
 return Module

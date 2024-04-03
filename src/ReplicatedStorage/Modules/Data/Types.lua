@@ -47,6 +47,8 @@ export type SpeedNode = BaseNode & {
 }
 
 export type SongData = {
+	SongId : stirng,
+	Difficulty : number,
 	AspectRatio : number,
 	Sound : { SoundId : string, Volume : number, TimePosition : number },
 	Nodes : { PressButtonNode | HoldButtonNode | SliderDataNode | SpeedNode }

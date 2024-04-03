@@ -30,7 +30,7 @@ if RunService:IsServer() then
 	local clientRemoteFolder = GetOrCreateFolder(ReplicatedStorage)
 	local serverRemoteFolder = GetOrCreateFolder(game:GetService('ServerStorage'))
 
-	function Module:GetRemote(remoteName : string, remoteType : string, isClientBased : boolean?)
+	function Module.GetRemote(remoteName : string, remoteType : string, isClientBased : boolean?)
 		local targetParent = (isClientBased and serverRemoteFolder or clientRemoteFolder)
 		local remoteObject = SearchForNameAndClass(remoteName, remoteType, targetParent)
 		if not remoteObject then
@@ -43,7 +43,7 @@ if RunService:IsServer() then
 else
 	local ClientRemotes = ReplicatedStorage:WaitForChild(remoteContainerName)
 
-	function Module:GetRemote(remoteName : string, remoteType : string, isClientBased : boolean?)
+	function Module.GetRemote(remoteName : string, remoteType : string, isClientBased : boolean?)
 		if isClientBased then
 			local Remote = SearchForNameAndClass(remoteName, remoteType, ReplicatedStorage)
 			if not Remote then
